@@ -3,140 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Advisor AI</title>
-    <style>
-        body { font-family: 'Inter', sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background-color: #f8f9fa; }
-        h1, h2, h3 { color: #343a40; }
-        .container { background: #ffffff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); margin-bottom: 30px; }
-        label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; color: #495057; }
-        input[type="number"] { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ced4da; border-radius: 8px; box-sizing: border-box; }
-        button { 
-            background-color: #007bff; color: white; border: none; padding: 12px 20px; 
-            border-radius: 8px; cursor: pointer; transition: background-color 0.3s;
-            width: 100%; font-size: 1.1em;
-        }
-        button:hover { background-color: #0056b3; }
-        #results { 
-            margin-top: 20px; padding: 25px; background: #e9ecef; border-radius: 12px; 
-            border-left: 5px solid #007bff;
-        }
-        .allocation-list { list-style: none; padding: 0; }
-        .allocation-list li { margin-bottom: 8px; padding: 5px; background: #ffffff; border-radius: 6px; }
-        .error-message { color: #dc3545; font-weight: bold; background: #f8d7da; padding: 10px; border-radius: 8px; margin-top: 15px; }
-    </style>
+    <title>AI Financial Advisor - Input</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Personalized Financial Advisor AI</h1>
-    <div class="container">
-        <h2>Enter Your Profile</h2>
-        <form id="profile-form">
-            <label for="age">Age:</label>
-            <input type="number" id="age" name="age" required value="35">
-
-            <label for="income">Annual Income ($):</label>
-            <input type="number" id="income" name="income" required value="120000">
-
-            <label for="savings">Total Savings ($):</label>
-            <input type="number" id="savings" name="savings" required value="150000">
-
-            <label for="risk_score">Risk Score (1-10, higher is more aggressive):</label>
-            <input type="number" id="risk_score" name="risk_score" min="1" max="10" step="0.1" required value="7.5">
-
-            <button type="submit" id="submit-button">Get My Plan</button>
-        </form>
+    <div class="page-header">
+        <h1>NiveshMitra: A Personalized Financial Advisor</h1>
     </div>
+    <div class="main-container">
+        <!-- Left Column: Profile Form -->
+        <div class="card profile-card">
+            <h2>Your Profile</h2>
+            <p>Fill in your details to get a personalized financial plan.</p>
+            <form action="/" method="POST">
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input type="number" id="age" name="age" placeholder="e.g., 35" required>
+                </div>
+                <div class="form-group">
+                    <label for="income">Annual Income ($)</label>
+                    <input type="number" id="income" name="income" placeholder="e.g., 80000" required>
+                </div>
+                <div class="form-group">
+                    <label for="savings">Total Savings ($)</label>
+                    <input type="number" id="savings" name="savings" placeholder="e.g., 50000" required>
+                </div>
+                <div class="form-group">
+                    <label for="risk_score">Risk Tolerance</label>
+                    <div class="slider-group">
+                        <input type="range" id="risk_score" name="risk_score" min="1" max="10" value="5" step="0.1">
+                        <span id="risk-value">5.0</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="goals">Life Events & Goals</label>
+                    <textarea id="goals" name="goals" placeholder="e.g., planning to buy a house in 5 years, saving for retirement..."></textarea>
+                </div>
+                <button type="submit" class="btn-analyze">Analyze Portfolio</button>
+            </form>
+        </div>
 
-    <div id="results">
-        <h2>Your Personalized Plan</h2>
-        <p>Enter your details and click 'Get My Plan' to receive tailored investment advice and insurance recommendations.</p>
+        <!-- Right Column: Info -->
+        <div class="card info-card">
+            <h2>Ready to get started?</h2>
+            <p>Our AI-powered tool provides a comprehensive financial analysis, including portfolio allocation, risk assessment, and personalized recommendations to help you achieve your financial goals.</p>
+        </div>
     </div>
 
     <script>
-        document.getElementById('profile-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const resultsDiv = document.getElementById('results');
-            const submitButton = document.getElementById('submit-button');
-
-            // Show loading state
-            resultsDiv.innerHTML = `<h2>Processing...</h2><p>Running ML models and generating LLM explanation. Please wait.</p>`;
-            submitButton.disabled = true;
-            submitButton.textContent = 'Analyzing...';
-
-
-            const formData = {
-                age: parseInt(document.getElementById('age').value),
-                income: parseInt(document.getElementById('income').value),
-                savings: parseInt(document.getElementById('savings').value),
-                risk_score: parseFloat(document.getElementById('risk_score').value)
-            };
-
-            try {
-                // 1. Send data to the Flask backend
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-
-                // Check for HTTP errors (e.g., 500 Internal Server Error)
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Server returned status ${response.status}: ${errorText.substring(0, 200)}...`);
-                }
-
-                // 2. Parse the JSON response
-                const data = await response.json();
-                
-                // 3. Display results
-                resultsDiv.innerHTML = `
-                    <h2>Portfolio Allocation Recommendation</h2>
-                    <ul class="allocation-list">
-                        <li><strong>Stocks:</strong> ${data.predicted_allocation.stocks}%</li>
-                        <li><strong>Bonds:</strong> ${data.predicted_allocation.bonds}%</li>
-                        <li><strong>Cash:</strong> ${data.predicted_allocation.cash}%</li>
-                    </ul>
-
-                    <h3>🤖 AI Explanation (Powered by Gemini)</h3>
-                    <p>${data.llm_explanation}</p>
-                    <hr>
-
-                    <h2>Compliance & Adjustments</h2>
-                    <p class="adjustment-reason">
-                        ${data.compliance_explanation || 'No compliance adjustment was necessary for this profile.'}
-                    </p>
-                    ${data.compliance_explanation ? `
-                        <h4>Adjusted Allocation:</h4>
-                        <ul class="allocation-list">
-                            <li><strong>Stocks:</strong> ${data.adjusted_allocation.stocks}%</li>
-                            <li><strong>Bonds:</strong> ${data.adjusted_allocation.bonds}%</li>
-                            <li><strong>Cash:</strong> ${data.adjusted_allocation.cash}%</li>
-                        </ul>
-                    ` : ''}
-                    <hr>
-
-                    <h2>Insurance Recommendations</h2>
-                    ${data.insurance_recommendations.length > 0 ? `
-                        <ul class="allocation-list">
-                            ${data.insurance_recommendations.map(rec => `<li>${rec}</li>`).join('')}
-                        </ul>
-                    ` : '<p>No specific insurance recommendations at this time based on mock life events.</p>'}
-                `;
-
-            } catch (error) {
-                console.error("Fetch or processing error:", error);
-                resultsDiv.innerHTML = `
-                    <div class="error-message">
-                        <h3>Error Generating Plan</h3>
-                        <p>An error occurred while connecting to the server or processing the data.</p>
-                        <p><strong>Details:</strong> ${error.message}</p>
-                        <p>Check the console (F12) for detailed network/server errors.</p>
-                    </div>
-                `;
-            } finally {
-                // Reset button state
-                submitButton.disabled = false;
-                submitButton.textContent = 'Get My Plan';
-            }
+        const riskSlider = document.getElementById('risk_score');
+        const riskValue = document.getElementById('risk-value');
+        riskSlider.addEventListener('input', () => {
+            riskValue.textContent = parseFloat(riskSlider.value).toFixed(1);
         });
     </script>
 </body>

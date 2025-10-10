@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Financial Advisor - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="page-header">
+        <h1>NiveshMitra: A Personalized Financial Advisor</h1>
+    </div>
+    <div class="dashboard-container">
+        <!-- Portfolio Allocation -->
+        <div class="card portfolio-allocation-card">
+            <div class="card-header">
+                <h3>Recommended Portfolio Allocation</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="allocationChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Stat Card: Expected Return -->
+        <div class="card stat-card">
+            <h4>Expected Return</h4>
+            <p class="stat-value">{{ analysis.expected_return }}%</p>
+        </div>
+
+        <!-- Stat Card: Portfolio Risk -->
+        <div class="card stat-card">
+            <h4>Portfolio Risk</h4>
+            <p class="stat-value">{{ analysis.portfolio_risk }}%</p>
+        </div>
+
+        <!-- AI-Generated Explanation -->
+        <div class="card ai-explanation-card">
+            <div class="card-header">
+                <h3>AI-Generated Explanation</h3>
+            </div>
+            <p><strong>Based on your profile, here's why this allocation makes sense:</strong> {{ gemini_explanation }}</p>
+        </div>
+
+        <!-- Risk vs Return Analysis -->
+        <div class="card risk-analysis-card">
+            <div class="card-header">
+                <h3>Risk vs. Return</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="riskReturnChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Portfolio Growth Projection -->
+        <div class="card growth-projection-card">
+            <div class="card-header">
+                <h3>Portfolio Growth Projection (30 Years)</h3>
+            </div>
+            <div class="chart-container" style="height: 300px;">
+                <canvas id="growthChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Insurance Recommendations -->
+        <div class="card insurance-rec">
+            <h3>Insurance Recommendations</h3>
+            <ul>
+                {% for rec in insurance_recommendations %}
+                <li>{{ rec }}</li>
+                {% else %}
+                <li>No specific recommendations at this time.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        {% if life_events and life_events is not none %}
+        <div class="card life-events-card">
+            <div class="card-header">
+                <h3>Life Events Analysis</h3>
+            </div>
+            <p>Based on your goals, we've noted the following upcoming events:</p>
+            <ul>
+                {% for event, years in life_events.items() %}
+                    {% if years is not none %}
+                        <li><strong>{{ event.replace('_', ' ').title() }}:</strong> in {{ years }} years</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const FONT_FAMILY = 'Inter';
+        const BORDER_COLOR = 'rgba(234, 235, 238, 0.5)';
+        const GRID_COLOR = 'rgba(234, 235, 238, 0.2)';
+
+        // 1. Portfolio Allocation Donut Chart
+        new Chart(document.getElementById('allocationChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Stocks', 'Bonds', 'Cash'],
+                datasets: [{
+                    data: [{{ allocation.stocks }}, {{ allocation.bonds }}, {{ allocation.cash }}],
+                    backgroundColor: ['#4A90E2', '#50E3C2', '#F5A623'],
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            font: { family: FONT_FAMILY },
+                            usePointStyle: true,
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Risk vs Return Scatter Plot
+        new Chart(document.getElementById('riskReturnChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Cash',
+                    data: [{ x: {{ analysis.cash_risk }}, y: {{ analysis.cash_return }} }],
+                    backgroundColor: '#F5A623'
+                }, {
+                    label: 'Bonds',
+                    data: [{ x: {{ analysis.bonds_risk }}, y: {{ analysis.bonds_return }} }],
+                    backgroundColor: '#50E3C2'
+                }, {
+                    label: 'Stocks',
+                    data: [{ x: {{ analysis.stocks_risk }}, y: {{ analysis.stocks_return }} }],
+                    backgroundColor: '#4A90E2'
+                }, {
+                    label: 'Your Portfolio',
+                    data: [{ x: {{ analysis.portfolio_risk }}, y: {{ analysis.expected_return }} }],
+                    backgroundColor: '#D0021B',
+                    pointRadius: 8,
+                    pointHoverRadius: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { family: FONT_FAMILY } }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Risk (Volatility %)', font: { family: FONT_FAMILY } },
+                        grid: { color: GRID_COLOR }
+                    },
+                    y: {
+                        title: { display: true, text: 'Expected Return (%)', font: { family: FONT_FAMILY } },
+                        grid: { color: GRID_COLOR }
+                    }
+                }
+            }
+        });
+
+        // 3. Portfolio Growth Line Chart
+        new Chart(document.getElementById('growthChart'), {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: 31 }, (_, i) => `Year ${i}`),
+                datasets: [{
+                    label: 'Conservative',
+                    data: {{ projections.conservative_growth | tojson }},
+                    borderColor: '#F5A623',
+                    backgroundColor: '#F5A623',
+                    fill: false,
+                    tension: 0.3
+                }, {
+                    label: 'Expected',
+                    data: {{ projections.expected_growth | tojson }},
+                    borderColor: '#4A90E2',
+                    backgroundColor: '#4A90E2',
+                    fill: false,
+                    tension: 0.3
+                }, {
+                    label: 'Optimistic',
+                    data: {{ projections.optimistic_growth | tojson }},
+                    borderColor: '#50E3C2',
+                    backgroundColor: '#50E3C2',
+                    fill: false,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { family: FONT_FAMILY } }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: FONT_FAMILY } }
+                    },
+                    y: {
+                        grid: { color: GRID_COLOR, borderDash: [2, 2] },
+                        ticks: {
+                            font: { family: FONT_FAMILY },
+                            callback: (value) => '$' + value.toLocaleString()
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

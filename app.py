@@ -10,7 +10,8 @@ from finance import (
     get_llm_explanation,
     apply_compliance_rules,
     get_insurance_recommendation,
-    generate_synthetic_data
+    generate_synthetic_data,
+    extract_life_events
 )
 
 app = Flask(__name__,template_folder="templates")
@@ -31,13 +32,110 @@ compliance_rules = {
     }
 }
 
-# --- ROOT ROUTE: Serves the HTML file (Fixes the 404/Not Found issue) ---
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    """Renders the main HTML template when the user visits the root URL."""
+    """Renders the main HTML template and handles form submission."""
+    if request.method == 'POST':
+        try:
+            # 1. Get user data from the form
+            user_data = {
+                'age': int(request.form['age']),
+                'income': int(request.form['income']),
+                'savings': int(request.form['savings']),
+                'risk_score': float(request.form['risk_score']),
+                'goals': request.form.get('goals', '') # Optional field
+            }
+            
+            # --- START: NEW CODE TO EXTRACT LIFE EVENTS ---
+            life_events = {} # Default to an empty dictionary
+            if gemini_model and user_data['goals']: # Check if model exists and goals text was provided
+                try:
+                    life_events = extract_life_events(gemini_model, user_data['goals'])
+                    app.logger.info(f"Extracted life events: {life_events}") # Good for debugging
+                except Exception as e:
+                    app.logger.error(f"Could not extract life events: {e}")
+            # --- END: NEW CODE ---
+            
+            user_profile = pd.DataFrame({
+                'age': [user_data['age']],
+                'income': [user_data['income']],
+                'savings': [user_data['savings']],
+                'risk_score': [user_data['risk_score']]
+            })
+            
+            # 2. Run the financial prediction logic
+            prediction = portfolio_model.predict(user_profile)
+            
+            # 3. Get LLM Explanation
+            feature_importances = [estimator.feature_importances_ for estimator in portfolio_model.estimators_]
+            avg_importance = np.mean(feature_importances, axis=0)
+            top_features_indices = np.argsort(avg_importance)[::-1][:2]
+            top_features_names = [features[i] for i in top_features_indices]
+
+            explanation = "LLM explanation unavailable."
+            if gemini_model:
+                explanation = get_llm_explanation(
+                    gemini_model, 
+                    user_profile, 
+                    prediction, 
+                    top_features_names,
+                    life_events
+                )
+            # 4. Apply compliance rules
+            adjusted_prediction, compliance_explanation = apply_compliance_rules(prediction[0], user_profile, compliance_rules)
+
+            # 5. Get insurance recommendations
+            insurance_recs = get_insurance_recommendation({
+                'age': user_data['age'], 
+                'income': user_data['income'], 
+                'married_flag': 1, # Mocked
+                'kids_flag': 1     # Mocked
+            })
+
+            # 6. Prepare data for the results template
+            # NOTE: These are placeholder values. You should calculate these in finance.py
+            projections_data = {
+                'conservative_growth': [user_data['savings'] * (1.03**i) for i in range(31)],
+                'expected_growth': [user_data['savings'] * (1.06**i) for i in range(31)],
+                'optimistic_growth': [user_data['savings'] * (1.09**i) for i in range(31)],
+                'ten_year': user_data['savings'] * (1.06**10),
+                'twenty_year': user_data['savings'] * (1.06**20),
+                'thirty_year': user_data['savings'] * (1.06**30),
+            }
+            
+            analysis_data = {
+                'expected_return': 7.5, # Placeholder
+                'portfolio_risk': 12.3, # Placeholder
+                'cash_risk': 0.1, 'cash_return': 0.5, # Placeholder
+                'bonds_risk': 4.2, 'bonds_return': 3.1, # Placeholder
+                'stocks_risk': 15.8, 'stocks_return': 9.2, # Placeholder
+            }
+
+            results = {
+                'allocation': {
+                    'stocks': round(adjusted_prediction[0], 2),
+                    'bonds': round(adjusted_prediction[1], 2),
+                    'cash': round(adjusted_prediction[2], 2)
+                },
+                'analysis': analysis_data,
+                'gemini_explanation': explanation,
+                'projections': projections_data,
+                'insurance_recommendations': insurance_recs,
+                'compliance_explanation': compliance_explanation,
+                'life_events': life_events
+            }
+            
+            return render_template('results.html', **results)
+
+        except Exception as e:
+            app.logger.error(f"Prediction failed due to: {e}", exc_info=True)
+            return render_template('index.html', error="An error occurred during analysis.")
+
+    # For GET requests, just render the input form
     return render_template('index.html')
 
 # --- API ROUTE: Handles predictions ---
+# This can be removed or kept for other purposes if needed
 @app.route('/predict', methods=['POST'])
 def predict():
     try:

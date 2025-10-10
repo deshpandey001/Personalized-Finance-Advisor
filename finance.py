@@ -67,31 +67,57 @@ def initialize_gemini():
     """Initializes and returns the Gemini Pro model."""
     try:
         genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-        return genai.GenerativeModel('gemini-2.5-pro')
+        return genai.GenerativeModel('gemini-2.5-flash')
     except Exception as e:
         print(f"Error initializing Gemini: {e}")
         return None
 
-def get_llm_explanation(model, user_profile, prediction, top_features):
-    """Generates a human-like explanation for a portfolio recommendation."""
-    prompt = f"""
-    An investor with the following profile:
-    Age: {user_profile['age'][0]}
-    Income: ${user_profile['income'][0]}
-    Savings: ${user_profile['savings'][0]}
-    Risk Score: {user_profile['risk_score'][0]}
+def get_llm_explanation(model, user_profile, prediction, top_features, life_events=None):
+    """Generates a human-like explanation for a portfolio recommendation, including life event advice."""
 
-    is recommended to allocate their portfolio as follows:
-    Stocks: {prediction[0][0]:.2f}%
-    Bonds: {prediction[0][1]:.2f}%
-    Cash: {prediction[0][2]:.2f}%
+    # Start building the prompt with the core financial data
+    prompt_parts = [
+        "You are 'NiveshMitra', a friendly and professional AI financial advisor. Your goal is to provide clear, simple, and actionable advice.",
+        "An investor with the following profile:",
+        f"- Age: {user_profile['age'].iloc[0]}",
+        f"- Annual Income: ${user_profile['income'].iloc[0]:,}",
+        f"- Total Savings: ${user_profile['savings'].iloc[0]:,}",
+        f"- Risk Score (1-10): {user_profile['risk_score'].iloc[0]}",
+        "",
+        "Based on our analysis, we recommend the following portfolio allocation:",
+        f"- Stocks: {prediction[0][0]:.1f}%",
+        f"- Bonds: {prediction[0][1]:.1f}%",
+        f"- Cash: {prediction[0][2]:.1f}%",
+        "",
+        f"The primary factors from your profile that influenced this allocation were your: {', '.join(top_features)}.",
+    ]
 
-    The most important factors influencing this recommendation are {', '.join(top_features)}.
-    Please provide a simple, human-like explanation for this investment advice.
-    """
+    # Dynamically add a section for life events if they exist
+    if life_events:
+        event_details = []
+        for event, years in life_events.items():
+            if years is not None:
+                event_name = event.replace('_years', '').replace('_', ' ').title()
+                event_details.append(f"- {event_name} (in approx. {years} years)")
+        
+        if event_details:
+            prompt_parts.append("\nWe've also noted your upcoming life goals:")
+            prompt_parts.extend(event_details)
+
+    # Add the final instructions for the AI
+    prompt_parts.extend([
+        "\n--- YOUR TASK ---",
+        "1.  **Explain the Portfolio:** In 1-2 sentences, briefly explain WHY this portfolio allocation is suitable for the user's profile (e.g., 'Given your age and risk score, this mix balances growth with stability.').",
+        "2.  **Provide Life Event Advice:** Based on the user's upcoming life goals, provide 1-2 actionable, bullet-pointed financial tips for each event. For example, for 'Buying a House', suggest creating a dedicated high-yield savings account for a down payment. For 'Retirement', suggest increasing contributions.",
+        "3.  **Tone:** Keep the language encouraging, simple, and easy to understand. Avoid complex jargon.",
+        "Begin your response with a friendly greeting like 'Hello! Here is your personalized financial plan:'"
+    ])
+    
+    final_prompt = "\n".join(prompt_parts)
+
     try:
         response = model.generate_content(
-            prompt,
+            final_prompt,
             safety_settings={
                 HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
                 HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
