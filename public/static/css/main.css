@@ -32,108 +32,166 @@ body {
 }
 
 /* --- Styles for Index Page (Input Form) --- */
-.main-container {
+/* === Updated Styles for AI Portfolio Advisor Home (Index Page) === */
+
+body {
+    background: linear-gradient(180deg, #f7f9fc 0%, #f0f4ff 100%);
     display: flex;
-    gap: 30px;
-    width: 100%;
-    max-width: 1200px;
-    margin: auto;
-    padding: 20px;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
 }
 
-.profile-card {
-    max-width: 450px;
-    flex: 1;
-}
-
-.profile-card h2 {
-    margin-top: 0;
-    font-size: 24px;
-    font-weight: 700;
-}
-
-.form-group {
+/* Header Styling */
+.page-header {
+    text-align: center;
+    margin-top: 40px;
     margin-bottom: 20px;
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: var(--light-text);
+.page-header h1 {
+    font-size: 34px;
+    font-weight: 700;
+    color: #2a3342;
 }
 
-.form-group input[type="number"],
-.form-group textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-sizing: border-box;
-    font-size: 16px;
-    font-family: 'Inter', sans-serif;
+.page-header h1::before {
+    content: '📈 ';
+    color: var(--primary-blue);
 }
 
-.form-group textarea {
-    resize: vertical;
-    min-height: 100px;
-}
-
-.slider-group {
+/* Main Container */
+.main-container {
     display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.slider-group input[type="range"] {
-    flex-grow: 1;
-}
-
-.slider-group #risk-value {
-    font-weight: 600;
-    background-color: #F0F0F0;
-    padding: 5px 10px;
-    border-radius: 5px;
-}
-
-.btn-analyze {
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 40px 20px;
     width: 100%;
-    padding: 15px;
-    background-color: var(--primary-blue);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s;
+    max-width: 1100px;
 }
 
-.btn-analyze:hover {
-    background-color: #3a7bc8; /* A slightly darker blue for hover */
+/* Profile and Info Cards */
+.profile-card, .info-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    padding: 30px;
+    transition: all 0.3s ease-in-out;
+}
+
+.profile-card {
+    flex: 1;
+    max-width: 480px;
 }
 
 .info-card {
-    background: linear-gradient(135deg, #4A90E2, #3a7bc8);
-    color: white;
+    flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    flex: 1;
+    border: 1px solid #e0e6f0;
 }
 
 .info-card h2 {
-    font-size: 28px;
-    margin-bottom: 15px;
+    font-size: 24px;
+    color: var(--dark-text);
+    margin-bottom: 12px;
 }
 
 .info-card p {
+    color: var(--light-text);
+    line-height: 1.7;
     font-size: 16px;
-    line-height: 1.6;
-    max-width: 80%;
+    max-width: 85%;
 }
+
+/* Form Inputs */
+.form-group label {
+    font-size: 15px;
+    color: var(--dark-text);
+    font-weight: 600;
+}
+
+.form-group input,
+.form-group textarea {
+    border: 1px solid #dce1eb;
+    border-radius: 10px;
+    background-color: #f9fafc;
+    transition: border 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: var(--primary-blue);
+    outline: none;
+}
+
+/* Risk Slider Styling */
+.slider-group input[type="range"] {
+    appearance: none;
+    height: 6px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--primary-blue) 60%, #dce1eb 60%);
+}
+
+.slider-group input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--primary-blue);
+    cursor: pointer;
+}
+
+.slider-group #risk-value {
+    color: var(--dark-text);
+    background-color: #eef3ff;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* Analyze Button */
+.btn-analyze {
+    margin-top: 10px;
+    background-color: var(--primary-blue);
+    color: #fff;
+    font-weight: 600;
+    font-size: 17px;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.3s ease-in-out;
+}
+
+.btn-analyze:hover {
+    background-color: #3578d5;
+}
+
+/* Life Goals box */
+.form-group textarea::placeholder {
+    color: #9aa3b7;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 900px) {
+    .main-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 25px;
+    }
+
+    .profile-card, .info-card {
+        width: 90%;
+        max-width: 600px;
+    }
+}
+
 
 /* --- Styles for Results Page (Dashboard) --- */
 .dashboard-container {
