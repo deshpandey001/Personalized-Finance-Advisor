@@ -25,13 +25,13 @@
         <!-- Stat Card: Expected Return -->
         <div class="card stat-card">
             <h4>Expected Return</h4>
-            <p class="stat-value">{{ analysis.expected_return }}%</p>
+            <p id="expected-return" class="stat-value">{{ analysis.expected_return }}%</p>
         </div>
 
         <!-- Stat Card: Portfolio Risk -->
         <div class="card stat-card">
             <h4>Portfolio Risk</h4>
-            <p class="stat-value">{{ analysis.portfolio_risk }}%</p>
+            <p id="portfolio-risk" class="stat-value">{{ analysis.portfolio_risk }}%</p>
         </div>
 
         <!-- AI-Generated Explanation -->
@@ -222,6 +222,19 @@
                 }
             }
         });
+
+        // Update the small stat cards with formatted values (in case values are passed as numbers)
+        function updateSummaryMetrics(expected, risk){
+            try{
+                const er = document.getElementById('expected-return');
+                const pr = document.getElementById('portfolio-risk');
+                if(er) er.textContent = (Number(expected) || 0).toFixed(2) + '%';
+                if(pr) pr.textContent = (Number(risk) || 0).toFixed(2) + '%';
+            }catch(e){ console.warn('Could not update summary metrics', e); }
+        }
+
+        // Initialize the summary metrics using server-provided values
+        updateSummaryMetrics({{ analysis.expected_return | default(0) }}, {{ analysis.portfolio_risk | default(0) }});
     </script>
 </body>
 </html>

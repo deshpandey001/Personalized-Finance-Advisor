@@ -103,12 +103,31 @@ def index():
                 'thirty_year': user_data['savings'] * (1.06**30),
             }
             
+            # Per-asset expected returns (%) and risk (volatility %) - simple assumptions
+            cash_return = 0.5
+            cash_risk = 0.1
+            bonds_return = 3.1
+            bonds_risk = 4.2
+            stocks_return = 9.2
+            stocks_risk = 15.8
+
+            # Adjusted allocation (percentages) from model
+            alloc = adjusted_prediction
+            stocks_pct = float(alloc[0])
+            bonds_pct = float(alloc[1])
+            cash_pct = float(alloc[2])
+
+            # Compute portfolio expected return and portfolio risk as weighted averages
+            # (This is a simplification — for production use covariance matrix or Monte Carlo)
+            expected_return = (stocks_pct * stocks_return + bonds_pct * bonds_return + cash_pct * cash_return) / 100.0
+            portfolio_risk = (stocks_pct * stocks_risk + bonds_pct * bonds_risk + cash_pct * cash_risk) / 100.0
+
             analysis_data = {
-                'expected_return': 7.5, # Placeholder
-                'portfolio_risk': 12.3, # Placeholder
-                'cash_risk': 0.1, 'cash_return': 0.5, # Placeholder
-                'bonds_risk': 4.2, 'bonds_return': 3.1, # Placeholder
-                'stocks_risk': 15.8, 'stocks_return': 9.2, # Placeholder
+                'expected_return': round(expected_return, 2),
+                'portfolio_risk': round(portfolio_risk, 2),
+                'cash_risk': cash_risk, 'cash_return': cash_return,
+                'bonds_risk': bonds_risk, 'bonds_return': bonds_return,
+                'stocks_risk': stocks_risk, 'stocks_return': stocks_return,
             }
 
             results = {
