@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template # ADDED render_templa
 import pandas as pd
 import os
 import numpy as np # Ensure numpy is imported for calculations
+from dotenv import load_dotenv
 
 # Import your core logic from finance.py
 from finance import (
@@ -15,6 +16,9 @@ from finance import (
 )
 
 app = Flask(__name__,template_folder="templates")
+
+# Load environment variables from .env (if present)
+load_dotenv()
 
 # --- Load and Train Models on App Startup ---
 # This ensures the model is ready to go as soon as the server starts.

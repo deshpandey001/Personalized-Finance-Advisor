@@ -8,6 +8,10 @@ import json
 import google.generativeai as genai
 from google.generativeai.types import HarmBlockThreshold, HarmCategory
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env (if present)
+load_dotenv()
 
 # Ensure you have set your Gemini API key as an environment variable
 # If not, uncomment and set your key here:
