@@ -342,12 +342,3 @@ It does **not** provide regulated financial advice, and any outputs are purely i
 
 ---
 
-## 📄 License
-
-Specify your license here, e.g.:
-
-```text
-MIT License
-```
-
-(Or add a `LICENSE` file and reference it.)
