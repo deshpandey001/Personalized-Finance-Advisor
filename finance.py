@@ -287,10 +287,8 @@ if __name__ == "__main__":
     if compliance_explanation and gemini_model:
         llm_prompt_compliance = f"Original allocation: {np.round(original_prediction[0], 2)}. Adjusted allocation: {np.round(adjusted_prediction, 2)}. The reason is: '{compliance_explanation}'. Please rephrase this as friendly, clear financial advice."
         print("\n--- LLM-Generated Compliance Explanation ---")
-        response = gemini_model.generate_content(llm_prompt_compliance, safety_settings={
-            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-        })
+        response = gemini_model.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=llm_prompt_compliance
+        )
         print(response.text)
