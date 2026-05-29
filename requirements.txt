@@ -2,6 +2,6 @@ Flask
 pandas
 numpy
 scikit-learn
-google-genai
+groq
 gunicorn
 python-dotenv

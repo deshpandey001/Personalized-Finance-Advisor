@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 # Import your core logic from finance.py
 from finance import (
     train_portfolio_model,
-    initialize_gemini,
+    initialize_groq,
     get_llm_explanation,
     apply_compliance_rules,
     get_insurance_recommendation,
@@ -25,7 +25,7 @@ load_dotenv()
 print("Initializing models and LLM client...")
 df = generate_synthetic_data()
 portfolio_model, features = train_portfolio_model(df)
-gemini_model = initialize_gemini()
+groq_client = initialize_groq()
 print("Initialization complete.")
 
 # Hardcoded rules for compliance
@@ -52,9 +52,9 @@ def index():
             
             # --- START: NEW CODE TO EXTRACT LIFE EVENTS ---
             life_events = {} # Default to an empty dictionary
-            if gemini_model and user_data['goals']: # Check if model exists and goals text was provided
+            if groq_client and user_data['goals']: # Check if client exists and goals text was provided
                 try:
-                    life_events = extract_life_events(gemini_model, user_data['goals'])
+                    life_events = extract_life_events(groq_client, user_data['goals'])
                     app.logger.info(f"Extracted life events: {life_events}") # Good for debugging
                 except Exception as e:
                     app.logger.error(f"Could not extract life events: {e}")
@@ -77,9 +77,9 @@ def index():
             top_features_names = [features[i] for i in top_features_indices]
 
             explanation = "LLM explanation unavailable."
-            if gemini_model:
+            if groq_client:
                 explanation = get_llm_explanation(
-                    gemini_model, 
+                    groq_client, 
                     user_profile, 
                     prediction, 
                     top_features_names,
@@ -192,10 +192,9 @@ def predict():
             top_features_names = ["Model Data Unavailable"]
 
         explanation = "LLM explanation unavailable (API key or model issue)."
-        if gemini_model:
-            explanation = get_llm_explanation(
-                gemini_model, 
-                user_profile, 
+        if groq_client:
+                explanation = get_llm_explanation(
+                    groq_client, 
                 prediction, 
                 top_features_names
             )

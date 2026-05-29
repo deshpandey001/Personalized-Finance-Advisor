@@ -5,16 +5,16 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 import json
-import google.genai as genai
+from groq import Groq
 import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env (if present)
 load_dotenv()
 
-# Ensure you have set your Gemini API key as an environment variable
+# Ensure you have set your Groq API key as an environment variable
 # If not, uncomment and set your key here:
-# os.environ["GOOGLE_API_KEY"] = "YOUR_GEMINI_API_KEY"
+# os.environ["GROQ_API_KEY"] = "YOUR_GROQ_API_KEY"
 
 # --- 1. Data Generation and Model Training ---
 
@@ -66,17 +66,21 @@ def train_portfolio_model(df):
 
 # --- 2. LLM Integration for Explainability and Feature Extraction ---
 
-def initialize_gemini():
-    """Initializes and returns the Gemini Pro model."""
+def initialize_groq():
+    """Initializes and returns the Groq client."""
     try:
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+        api_key = os.environ.get("GROQ_API_KEY")
+        if not api_key:
+            print("Warning: GROQ_API_KEY not set. LLM features will be disabled.")
+            return None
+        client = Groq(api_key=api_key)
         return client
     except Exception as e:
-        print(f"Error initializing Gemini: {e}")
+        print(f"Error initializing Groq: {e}")
         return None
 
-def get_llm_explanation(model, user_profile, prediction, top_features, life_events=None):
-    """Generates a human-like explanation for a portfolio recommendation, including life event advice."""
+def get_llm_explanation(client, user_profile, prediction, top_features, life_events=None):
+    """Generates a human-like explanation for a portfolio recommendation using Groq."""
 
     # Start building the prompt with the core financial data
     prompt_parts = [
@@ -119,16 +123,21 @@ def get_llm_explanation(model, user_profile, prediction, top_features, life_even
     final_prompt = "\n".join(prompt_parts)
 
     try:
-        response = model.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=final_prompt
+        message = client.chat.completions.create(
+            model="mixtral-8x7b-32768",
+            messages=[
+                {"role": "system", "content": "You are a helpful financial advisor."},
+                {"role": "user", "content": final_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1024
         )
-        return response.text
+        return message.choices[0].message.content
     except Exception as e:
         return f"Error generating explanation: {e}"
 
-def extract_life_events(model, text_input):
-    """Uses Gemini to extract life events from unstructured text."""
+def extract_life_events(client, text_input):
+    """Uses Groq to extract life events from unstructured text."""
     extraction_prompt = f"""
     From the following text, extract any life events and their timelines into a JSON object.
     Use the keys: 'marriage_years', 'retirement_years', 'house_years', 'kids_years'.
@@ -138,16 +147,32 @@ def extract_life_events(model, text_input):
     Input: 'I'm saving up for a house in 5 years.'
     Output: {{ "marriage_years": null, "retirement_years": null, "house_years": 5, "kids_years": null }}
 
+    IMPORTANT: Return ONLY valid JSON, no additional text.
+
     Input text: "{text_input}"
     Output:
     """
     try:
-        response = model.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=extraction_prompt,
-            config=genai.types.GenerateContentConfig(response_mime_type="application/json")
+        message = client.chat.completions.create(
+            model="mixtral-8x7b-32768",
+            messages=[
+                {"role": "system", "content": "You are a JSON extraction assistant. Return only valid JSON."},
+                {"role": "user", "content": extraction_prompt}
+            ],
+            temperature=0.2,
+            max_tokens=256
         )
-        return json.loads(response.text)
+        response_text = message.choices[0].message.content.strip()
+        # Try to extract JSON from response
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            # If full response isn't valid JSON, try to find JSON within it
+            import re
+            json_match = re.search(r'\{[^{}]*\}', response_text)
+            if json_match:
+                return json.loads(json_match.group())
+            return {}
     except Exception as e:
         print(f"Error extracting life events: {e}")
         return {}
@@ -218,10 +243,10 @@ if __name__ == "__main__":
     print(f"Predicted Allocation: Stocks={prediction[0][0]:.2f}%, Bonds={prediction[0][1]:.2f}%, Cash={prediction[0][2]:.2f}%")
     print(f"Top influencing factors: {', '.join(top_features_names)}")
 
-    # Initialize Gemini
-    gemini_model = initialize_gemini()
-    if gemini_model:
-        explanation = get_llm_explanation(gemini_model, sample_user_profile, prediction, top_features_names)
+    # Initialize Groq
+    groq_client = initialize_groq()
+    if groq_client:
+        explanation = get_llm_explanation(groq_client, sample_user_profile, prediction, top_features_names)
         print("\n--- LLM-Generated Explanation ---")
         print(explanation)
     
@@ -232,8 +257,8 @@ if __name__ == "__main__":
     user_text = "I'm a young professional getting married next year and I'm also planning for my retirement in 20 years."
     print(f"User input text: '{user_text}'")
 
-    if gemini_model:
-        events = extract_life_events(gemini_model, user_text)
+    if groq_client:
+        events = extract_life_events(groq_client, user_text)
         print("LLM Extracted Events:", events)
         
         # Add a flag to the user profile based on the extracted event
@@ -284,11 +309,16 @@ if __name__ == "__main__":
     print(f"Original Prediction (Low Risk User): {np.round(original_prediction[0], 2)}")
     print(f"Adjusted Prediction (after compliance): {np.round(adjusted_prediction, 2)}")
     
-    if compliance_explanation and gemini_model:
+    if compliance_explanation and groq_client:
         llm_prompt_compliance = f"Original allocation: {np.round(original_prediction[0], 2)}. Adjusted allocation: {np.round(adjusted_prediction, 2)}. The reason is: '{compliance_explanation}'. Please rephrase this as friendly, clear financial advice."
         print("\n--- LLM-Generated Compliance Explanation ---")
-        response = gemini_model.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=llm_prompt_compliance
+        message = groq_client.chat.completions.create(
+            model="mixtral-8x7b-32768",
+            messages=[
+                {"role": "system", "content": "You are a helpful financial advisor."},
+                {"role": "user", "content": llm_prompt_compliance}
+            ],
+            temperature=0.7,
+            max_tokens=512
         )
-        print(response.text)
+        print(message.choices[0].message.content)
