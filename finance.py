@@ -206,9 +206,9 @@ def get_insurance_recommendation(user_data):
     
     # Rule 2: Health/critical illness cover for aging, high-income individuals
     # CRITICAL CHANGE: Removed [0] indexing
-    if user_data['age'] > 50 and user_data['income'] > 150000: 
+    if user_data['age'] > 50 and user_data['income'] > 15000: 
         recommendations.append("Health/Critical Illness Cover")
-    elif user_data['age'] < 30 and user_data['income'] > 80000:
+    elif user_data['age'] < 30 and user_data['income'] > 8000:
         recommendations.append("Consider reviewing disability income insurance as you grow your career.")
     
     return recommendations
