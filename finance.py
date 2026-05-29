@@ -124,7 +124,7 @@ def get_llm_explanation(client, user_profile, prediction, top_features, life_eve
 
     try:
         message = client.chat.completions.create(
-            model="mixtral-8x7b-32768",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a helpful financial advisor."},
                 {"role": "user", "content": final_prompt}
@@ -154,7 +154,7 @@ def extract_life_events(client, text_input):
     """
     try:
         message = client.chat.completions.create(
-            model="mixtral-8x7b-32768",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a JSON extraction assistant. Return only valid JSON."},
                 {"role": "user", "content": extraction_prompt}
@@ -313,7 +313,7 @@ if __name__ == "__main__":
         llm_prompt_compliance = f"Original allocation: {np.round(original_prediction[0], 2)}. Adjusted allocation: {np.round(adjusted_prediction, 2)}. The reason is: '{compliance_explanation}'. Please rephrase this as friendly, clear financial advice."
         print("\n--- LLM-Generated Compliance Explanation ---")
         message = groq_client.chat.completions.create(
-            model="mixtral-8x7b-32768",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a helpful financial advisor."},
                 {"role": "user", "content": llm_prompt_compliance}
