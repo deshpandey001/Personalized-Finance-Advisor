@@ -5,8 +5,7 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 import json
-import google.generativeai as genai
-from google.generativeai.types import HarmBlockThreshold, HarmCategory
+import google.genai as genai
 import os
 from dotenv import load_dotenv
 
@@ -70,8 +69,8 @@ def train_portfolio_model(df):
 def initialize_gemini():
     """Initializes and returns the Gemini Pro model."""
     try:
-        genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-        return genai.GenerativeModel('gemini-2.5-flash')
+        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+        return client
     except Exception as e:
         print(f"Error initializing Gemini: {e}")
         return None
@@ -120,14 +119,9 @@ def get_llm_explanation(model, user_profile, prediction, top_features, life_even
     final_prompt = "\n".join(prompt_parts)
 
     try:
-        response = model.generate_content(
-            final_prompt,
-            safety_settings={
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-            }
+        response = model.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=final_prompt
         )
         return response.text
     except Exception as e:
@@ -148,9 +142,10 @@ def extract_life_events(model, text_input):
     Output:
     """
     try:
-        response = model.generate_content(
-            extraction_prompt,
-            generation_config={"response_mime_type": "application/json"}
+        response = model.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=extraction_prompt,
+            config=genai.types.GenerateContentConfig(response_mime_type="application/json")
         )
         return json.loads(response.text)
     except Exception as e:
